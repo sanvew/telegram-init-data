@@ -6,7 +6,7 @@
 
     <groupId>io.github.sanvew</groupId>
     <artifactId>telegram-init-data</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
 
     <name>Telegram InitData</name>
@@ -32,14 +32,14 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/sanvew/InitDataTelegram.git</connection>
-        <developerConnection>scm:git:ssh://github.com:sanvew/InitDataTelegram.git</developerConnection>
-        <url>https://github.com/sanvew/InitDataTelegram/tree/main</url>
+        <connection>scm:git:git://github.com/sanvew/telegram-init-data.git</connection>
+        <developerConnection>scm:git:ssh://github.com:sanvew/telegram-init-data.git</developerConnection>
+        <url>https://github.com/sanvew/telegram-init-data/tree/main</url>
     </scm>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>11</java.version>
+        <java.version>17</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.compiler.release>${java.version}</maven.compiler.release>

@@ -1,42 +1,78 @@
 package io.github.sanvew.tg.init.data.type;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Map;
+import java.util.Objects;
+
 /**
- * Enumeration of possible chat types in Telegram Mini App Init Data.
+ * Closed hierarchy describing chat types supported by Telegram init data.
  * <p>
- * Supported types include {@code sender}, {@code private}, {@code group}, {@code supergroup}, and {@code channel}.
- *
- * @see <a href="https://docs.telegram-mini-apps.com/platform/init-data#chat">Telegram Init Data - chat.type</a>
+ * Known types are exposed as singletons (mirroring the previous enum constants). Unknown values
+ * produce dedicated {@link Unknown} instances whose equality/hashCode depend on the raw value,
+ * so different non-standard inputs remain distinguishable.
  */
-public enum ChatType {
-    SENDER("sender"),
-    PRIVATE("private"),
-    GROUP("group"),
-    SUPERGROUP("supergroup"),
-    CHANNEL("channel"),
-    ;
+public abstract sealed class ChatType permits ChatType.Named, ChatType.Unknown {
+    public static final ChatType SENDER = new Named("sender");
+    public static final ChatType PRIVATE = new Named("private");
+    public static final ChatType GROUP = new Named("group");
+    public static final ChatType SUPERGROUP = new Named("supergroup");
+    public static final ChatType CHANNEL = new Named("channel");
+    private static final Map<String, ChatType> KNOWN_BY_VALUE = Map.of(
+            SENDER.value(), SENDER,
+            PRIVATE.value(), PRIVATE,
+            GROUP.value(), GROUP,
+            SUPERGROUP.value(),SUPERGROUP,
+            CHANNEL.value(), CHANNEL
+    );
 
-    public final String value;
+    private final String value;
 
-    ChatType(String value) {
+    private ChatType(@NotNull String value) {
         this.value = value;
     }
 
+    public final @NotNull String value() {
+        return value;
+    }
+
     /**
-     * Parses a string value into a corresponding {@link ChatType} enum.
+     * Resolves the provided raw Telegram value to a {@link ChatType}.
      *
-     * @param value the string representation of the chat type (e.g. "group")
-     * @return the matching {@link ChatType} or {@code null} if input is null
-     * @throws IllegalArgumentException if the value is not recognized
+     * @param value raw chat type string; {@code null} yields {@code null}
+     * @return matching singleton for known values, or an {@link Unknown} carrying the raw value
      */
     public static @Nullable ChatType fromValue(@Nullable String value) {
         if (value == null) { return null; }
-        for (final ChatType chatType : ChatType.values()) {
-            if (chatType.value.equals(value)) {
-                return chatType;
-            }
+        return KNOWN_BY_VALUE.getOrDefault(value, (ChatType) new Unknown(value));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        return Objects.equals(value, ((ChatType) o).value);
+    }
+
+    @Override
+    public final int hashCode() {
+        return Objects.hash(getClass(), value);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "{" + value + "}";
+    }
+
+    static final class Named extends ChatType {
+        private Named(String value) {
+            super(value);
         }
-        throw new IllegalArgumentException("Unknown value \"" + value + "\"");
+    }
+
+    public static final class Unknown extends ChatType {
+        public Unknown(@Nullable String value) {
+            super(value);
+        }
     }
 }

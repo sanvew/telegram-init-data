@@ -1,25 +1,28 @@
 package io.github.sanvew.tg.init.data.json.parser.impl;
 
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import io.github.sanvew.tg.init.data.exception.JsonParseException;
-import io.github.sanvew.tg.init.data.exception.JsonPropertyMissingException;
 import io.github.sanvew.tg.init.data.json.parser.InitDataJsonTypesParser;
+import io.github.sanvew.tg.init.data.json.parser.exception.JsonParseException;
+import io.github.sanvew.tg.init.data.json.parser.exception.JsonPropertyMissingException;
 import io.github.sanvew.tg.init.data.type.Chat;
 import io.github.sanvew.tg.init.data.type.ChatType;
 import io.github.sanvew.tg.init.data.type.User;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
+import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class JacksonInitDataJsonTypesParserTest {
     final InitDataJsonTypesParser underTest = new JacksonInitDataJsonTypesParser();
 
     @Nested
-    class parseUserTest {
+    class parseUser_TestGroup {
         @Test
         void parseUser_withAllFieldsProvided_returnsUser() {
             final String inputAllFieldsProvided = "{"
@@ -36,7 +39,15 @@ class JacksonInitDataJsonTypesParserTest {
                     + "}";
 
             final User expected = new User(
-                    true, true, true, "Alice", 123456789L, false, "Smith", "en", "https://example.com/avatar.jpg",
+                    true,
+                    true,
+                    true,
+                    "Alice",
+                    123456789L,
+                    false,
+                    "Smith",
+                    "en",
+                    URI.create("https://example.com/avatar.jpg"),
                     "alice123"
             );
 
@@ -54,7 +65,29 @@ class JacksonInitDataJsonTypesParserTest {
 
             final User expected = new User(null, null, null, "A", 1, null, null, null, null, null);
 
-            final User actual = underTest.parseUser( inputOnlyRequiredFields);
+            final User actual = underTest.parseUser(inputOnlyRequiredFields);
+
+            assertEquals(expected, actual);
+        }
+
+        @Test
+        void parseUser_withNullFieldsValues_returnUser() {
+            final String inputNullFieldsValues = "{"
+                    + "\"id\": 1,"
+                    + "\"is_bot\": null,"
+                    + "\"first_name\": \"A\","
+                    + "\"last_name\": null,"
+                    + "\"username\": null,"
+                    + "\"language_code\": null,"
+                    + "\"is_premium\": null,"
+                    + "\"allows_write_to_pm\": null,"
+                    + "\"added_to_attachment_menu\": null,"
+                    + "\"photo_url\": null"
+                    + "}";
+
+            final User expected = new User(null, null, null, "A", 1, null, null, null, null, null);
+
+            final User actual = underTest.parseUser(inputNullFieldsValues);
 
             assertEquals(expected, actual);
         }
@@ -71,23 +104,20 @@ class JacksonInitDataJsonTypesParserTest {
             final Map<String, String> expectedExtra = new HashMap<>();
             expectedExtra.put("foo", "bar");
             expectedExtra.put("bar", null);
-            final User expected = new User(
-                    null, null, null, "A", 1, null, null, null, null, null,
-                    Collections.unmodifiableMap(expectedExtra)
-            );
+            final User expected = new User(null, null, null, "A", 1, null, null, null, null, null, expectedExtra);
 
-            final User actual = underTest.parseUser( inputExtraFields);
+            final User actual = underTest.parseUser(inputExtraFields);
 
             assertEquals(expected, actual);
         }
 
         @Test
-        void parseUser_withNullInput_returnsNull() {
+        void parseUser_withNullArgument_returnsNull() {
             assertNull(underTest.parseUser(null));
         }
 
         @Test
-        void parseUser_withBlankInput_returnsNull() {
+        void parseUser_withBlankArgument_returnsNull() {
             assertNull(underTest.parseUser("  "));
         }
 
@@ -118,7 +148,7 @@ class JacksonInitDataJsonTypesParserTest {
     }
 
     @Nested
-    class parseChatTest {
+    class parseChat_TestGroup {
         @Test
         void parseChat_withAllFieldsProvided_returnsChat() {
             final String inputAllFieldsProvided = "{"
@@ -130,10 +160,43 @@ class JacksonInitDataJsonTypesParserTest {
                     + "}";
 
             final Chat expected = new Chat(
-                    1001234567890L, ChatType.SUPERGROUP, "Test Group", "https://example.com/photo.jpg", "testgroup"
+                    1001234567890L, ChatType.SUPERGROUP, "Test Group", URI.create("https://example.com/photo.jpg"),
+                    "testgroup"
             );
 
             final Chat actual = underTest.parseChat(inputAllFieldsProvided);
+
+            assertEquals(expected, actual);
+        }
+
+        @Test
+        void parseChat_withOnlyRequiredFields_returnsChat() {
+            final String inputOnlyRequiredFields = "{"
+                    + "\"id\": 1001234567890,"
+                    + "\"type\": \"supergroup\","
+                    + "\"title\": \"Test Group\""
+                    + "}";
+
+            final Chat expected = new Chat(1001234567890L, ChatType.SUPERGROUP, "Test Group", null, null);
+
+            final Chat actual = underTest.parseChat(inputOnlyRequiredFields);
+
+            assertEquals(expected, actual);
+        }
+
+        @Test
+        void parseChat_withNullFieldsValues_returnChat() {
+            final String inputNullFieldsValues = "{"
+                    + "\"id\": 1001234567890,"
+                    + "\"type\": \"group\","
+                    + "\"title\": \"Extras\","
+                    + "\"username\": null,"
+                    + "\"photo_url\": null"
+                    + "}";
+
+            final Chat expected = new Chat(1001234567890L, ChatType.GROUP, "Extras", null, null);
+
+            final Chat actual = underTest.parseChat(inputNullFieldsValues);
 
             assertEquals(expected, actual);
         }
@@ -161,12 +224,12 @@ class JacksonInitDataJsonTypesParserTest {
         }
 
         @Test
-        void parseChat_withNullInput_returnsNull() {
+        void parseChat_withNullArgument_returnsNull() {
             assertNull(underTest.parseChat(null));
         }
 
         @Test
-        void parseChat_withBlankInput_returnsNull() {
+        void parseChat_withBlankArgument_returnsNull() {
             assertNull(underTest.parseChat("   "));
         }
 

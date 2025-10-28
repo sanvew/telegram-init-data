@@ -1,8 +1,8 @@
 package io.github.sanvew.tg.init.data.json.parser;
 
 import org.jetbrains.annotations.Nullable;
-import io.github.sanvew.tg.init.data.exception.JsonParseException;
-import io.github.sanvew.tg.init.data.exception.JsonPropertyMissingException;
+import io.github.sanvew.tg.init.data.json.parser.exception.JsonParseException;
+import io.github.sanvew.tg.init.data.json.parser.exception.JsonPropertyMissingException;
 import io.github.sanvew.tg.init.data.type.Chat;
 import io.github.sanvew.tg.init.data.type.User;
 /**

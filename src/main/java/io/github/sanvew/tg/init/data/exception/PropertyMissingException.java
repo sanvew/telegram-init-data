@@ -1,8 +1,8 @@
 package io.github.sanvew.tg.init.data.exception;
 
-public class PropertyMissingException extends RuntimeException {
+public class PropertyMissingException extends TelegramInitDataException {
     public PropertyMissingException(String arg, boolean defaultMessage) {
-        super(defaultMessage ? "Property \'" + arg + "\' is missing" : arg);
+        super(defaultMessage ? "Property \"" + arg + "\" is missing" : arg);
     }
 
     public PropertyMissingException(String property) {

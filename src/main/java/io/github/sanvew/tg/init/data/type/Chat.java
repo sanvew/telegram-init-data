@@ -1,19 +1,22 @@
 package io.github.sanvew.tg.init.data.type;
 
+import io.github.sanvew.tg.init.data.exception.PropertyMissingException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.net.URI;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * Represents a Telegram Chat object as received from the init data payload.
  * <p>
- * Supports known fields such as {@code id}, {@code type}, {@code title}, {@code photo_url} and {@code username},
- * and allows storing unknown extra fields as a map via {@link #getExtra()}.
+ * Supports known fields such as {@code id}, {@code type}, {@code title}, {@code photo_url}, and {@code username},
+ * and exposes every populated property via {@link #getProperties()}.
  *
  * @see <a href="https://docs.telegram-mini-apps.com/platform/init-data#chat">Telegram Mini Apps Init Data: Chat</a>
  */
@@ -41,72 +44,80 @@ public class Chat {
         }
     }
 
-    final private long id;
-    final private ChatType type;
-    final private String title;
-    final private String photoUrl;
-    final private String username;
-    private final Map<String, String> extra;
+    private final Map<String, Object> properties;
+    private final long id;
+    private final ChatType type;
+    private final String title;
+    private final URI photoUrl;
+    private final String username;
 
     public Chat(
             long id,
             @NotNull ChatType type,
             @NotNull String title,
-            @Nullable String photoUrl,
+            @Nullable URI photoUrl,
             @Nullable String username,
             @Nullable Map<String, String> extra
     ) {
+        final Map<String, Object> props = new HashMap<>();
+
         this.id = id;
+        props.put(Property.ID.value, this.id);
+
+        if (type == null) { throw new PropertyMissingException("type"); }
         this.type = type;
+        props.put(Property.TYPE.value, this.type);
+
+        if (title == null) { throw new PropertyMissingException("title"); }
         this.title = title;
+        props.put(Property.TITLE.value, this.title);
+
         this.photoUrl = photoUrl;
+        if (photoUrl != null) { props.put(Property.PHOTO_URL.value, this.photoUrl); }
+
         this.username = username;
-        this.extra = extra == null ? Map.of() : extra;
+        if (username != null) { props.put(Property.USERNAME.value, this.username); }
+
+        if (extra != null) {
+            for (final Map.Entry<String, String> entry: extra.entrySet()) {
+                if (Property.isNotKnown(entry.getKey()) && entry.getValue() != null) {
+                    props.put(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+        this.properties = Collections.unmodifiableMap(props);
     }
 
     public Chat(
             long id,
             @NotNull ChatType type,
             @NotNull String title,
-            @Nullable String photoUrl,
+            @Nullable URI photoUrl,
             @Nullable String username
     ) {
         this(id, type, title, photoUrl, username, null);
     }
 
+    public @NotNull Map<String, Object> getProperties() { return properties; }
     public long getId() {return id; }
     public @NotNull ChatType getType() {return type; }
     public @NotNull String getTitle() { return title; }
-    public @Nullable String getPhotoUrl() { return photoUrl; }
+    public @Nullable URI getPhotoUrl() { return photoUrl; }
     public @Nullable String getUsername() { return username; }
-    public @NotNull Map<String, String> getExtra() { return extra; }
 
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof Chat)) return false;
-        Chat chat = (Chat) o;
-        return id == chat.id
-                && type == chat.type
-                && Objects.equals(title, chat.title)
-                && Objects.equals(photoUrl, chat.photoUrl)
-                && Objects.equals(username, chat.username)
-                && Objects.equals(extra, chat.extra);
+        return this.properties.equals(((Chat) o).properties);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, type, title, photoUrl, username, extra);
+        return this.properties.hashCode();
     }
 
     @Override
     public String toString() {
-        return "Chat{" +
-                "id=" + id +
-                ", type=" + type +
-                ", title='" + title + '\'' +
-                ", photoUrl='" + photoUrl + '\'' +
-                ", username='" + username + '\'' +
-                ", extra=" + extra +
-                '}';
+        return this.properties.toString();
     }
 }
