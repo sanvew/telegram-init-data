@@ -17,18 +17,18 @@ and **InitData parsing** via ```InitDataUtils#parse```.
 <dependency>
     <groupId>io.github.sanvew</groupId>
     <artifactId>telegram-init-data</artifactId>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
 </dependency>
 ```
 
 ### Gradle
 ```groovy
-implementation 'io.github.sanvew:telegram-init-data:1.1.0'
+implementation 'io.github.sanvew:telegram-init-data:1.1.1'
 ```
 
 ```kotlin
 // kotlin DSL
-implementation("io.github.sanvew:telegram-init-data:1.1.0")
+implementation("io.github.sanvew:telegram-init-data:1.1.1")
 ```
 
 ## ✏️ Usage
