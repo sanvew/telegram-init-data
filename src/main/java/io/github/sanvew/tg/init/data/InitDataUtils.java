@@ -5,6 +5,7 @@ import io.github.sanvew.tg.init.data.exception.AuthDateMissingException;
 import io.github.sanvew.tg.init.data.exception.ExpiredException;
 import io.github.sanvew.tg.init.data.exception.SignatureInvalidException;
 import io.github.sanvew.tg.init.data.exception.SignatureMissingException;
+import io.github.sanvew.tg.init.data.exception.TelegramInitDataException;
 import io.github.sanvew.tg.init.data.json.parser.InitDataJsonTypesParser;
 import io.github.sanvew.tg.init.data.json.parser.exception.JsonParseException;
 import io.github.sanvew.tg.init.data.json.parser.exception.JsonPropertyMissingException;
@@ -240,6 +241,59 @@ public class InitDataUtils {
     }
 
     /**
+     * Validates the provided {@code initData} using Telegram's production Ed25519 key and optional expiration checks.
+     * <p>
+     * Delegates to {@link #validate3rd(String, long, boolean, Duration, Clock)} with {@code testEnvironment}
+     * set to {@code false}.
+     *
+     * @param initData  init data query string that contains a {@code signature} parameter
+     * @param botId     numeric bot identifier used during verification
+     * @param expiresIn optional duration indicating how long the init data is valid (based on {@code auth_date});
+     *                  if {@code null}, no expiration validation is performed
+     * @param clock     optional clock to use for time comparison when {@code expiresIn} is provided;
+     *                  if {@code null}, {@link Instant#now()} is used
+     * @throws IllegalArgumentException  if {@code initData} is {@code null} or blank
+     * @throws SignatureMissingException if the {@code signature} parameter is missing in {@code initData}
+     * @throws AuthDateMissingException  if {@code auth_date} is missing when expiration validation is required
+     * @throws AuthDateInvalidException  if {@code auth_date} cannot be parsed into a valid timestamp
+     * @throws ExpiredException          if the {@code auth_date} is outside the allowed {@code expiresIn} window
+     * @throws SignatureInvalidException if the Ed25519 signature does not match the one provided in {@code initData}
+     * @see #validate3rd(String, long, boolean, Duration, Clock)
+     * @see <a href="https://docs.telegram-mini-apps.com/platform/init-data#using-telegram-public-key">Telegram Mini Apps Init Data: Validating using Telegram Public Key</a>
+     */
+    public static void validate3rd(
+            @NotNull String initData,
+            long botId,
+            @Nullable Duration expiresIn,
+            @Nullable Clock clock
+    ) {
+        validate3rd(initData, botId, false, expiresIn, clock);
+    }
+
+    /**
+     * Validates the provided {@code initData} using Telegram's production Ed25519 key and the system clock.
+     * <p>
+     * Delegates to {@link #validate3rd(String, long, boolean, Duration, Clock)} with {@code testEnvironment}
+     * set to {@code false} and {@code clock} set to {@code null}.
+     *
+     * @param initData  init data query string that contains a {@code signature} parameter
+     * @param botId     numeric bot identifier used during verification
+     * @param expiresIn optional duration indicating how long the init data is valid (based on {@code auth_date});
+     *                  if {@code null}, no expiration validation is performed
+     * @throws IllegalArgumentException  if {@code initData} is {@code null} or blank
+     * @throws SignatureMissingException if the {@code signature} parameter is missing in {@code initData}
+     * @throws AuthDateMissingException  if {@code auth_date} is missing when expiration validation is required
+     * @throws AuthDateInvalidException  if {@code auth_date} cannot be parsed into a valid timestamp
+     * @throws ExpiredException          if the {@code auth_date} is outside the allowed {@code expiresIn} window
+     * @throws SignatureInvalidException if the Ed25519 signature does not match the one provided in {@code initData}
+     * @see #validate3rd(String, long, boolean, Duration, Clock)
+     * @see <a href="https://docs.telegram-mini-apps.com/platform/init-data#using-telegram-public-key">Telegram Mini Apps Init Data: Validating using Telegram Public Key</a>
+     */
+    public static void validate3rd(@NotNull String initData, long botId, @Nullable Duration expiresIn) {
+        validate3rd(initData, botId, false, expiresIn, null);
+    }
+
+    /**
      * Validates {@code initData} against Telegram's production Ed25519 key without expiration checks.
      * <p>
      * Delegates to {@link #validate3rd(String, long, boolean, Duration, Clock)} with {@code testEnvironment},
@@ -267,13 +321,13 @@ public class InitDataUtils {
      * @param parser   optional parser to deserialize structured fields like {@code user} and {@code chat};
      *                 if {@code null}, a default Jackson-based parser is used
      * @return parsed {@link InitData} object with typed fields
-     * @throws IllegalArgumentException     if {@code initData} is {@code null} or {@code isBlank() == true}
-     * @throws NumberFormatException        if {@code can_send_after} can't be parsed to {@link Long}
-     * @throws JsonParseException           if there are occurred during json field parsing (e.g. {@code user}, {@code chat} etc.)
-     * @throws JsonPropertyMissingException if any required property in json object is missing
-     * @throws SignatureMissingException    if the {@code hash} parameter is missing in {@code initData}
+     * @throws IllegalArgumentException     if {@code initData} is {@code null} or blank
+     * @throws AuthDateMissingException     if the required {@code auth_date} parameter is missing in {@code initData}
      * @throws AuthDateInvalidException     if {@code auth_date} cannot be parsed into a valid timestamp
-     * @see #validate3rd(String, long, boolean, Duration, Clock)
+     * @throws SignatureMissingException    if the required {@code hash} parameter is missing in {@code initData}
+     * @throws TelegramInitDataException    if a general init data parsing error occurs
+     * @throws JsonParseException           if JSON-typed fields (for example {@code user} or {@code chat}) cannot be parsed
+     * @throws JsonPropertyMissingException if required properties are missing in JSON-typed fields
      * @see <a href="https://docs.telegram-mini-apps.com/platform/init-data">Telegram Init Data documentation</a>
      */
     public static @NotNull InitData parse(@NotNull String initData, @Nullable final InitDataJsonTypesParser parser) {
@@ -281,7 +335,7 @@ public class InitDataUtils {
             throw buildExceptionArgumentNotProvided("initData");
         }
 
-        final InitDataJsonTypesParser parserUsed = parser == null ? JacksonInitDataJsonTypesParser.INSTANCE : parser;
+        final InitDataJsonTypesParser parserUsed = parser == null ? JacksonInitDataJsonTypesParser.of() : parser;
 
         final Map<String, String> parsedInitData = parseQueryString(initData);
 
@@ -298,10 +352,11 @@ public class InitDataUtils {
                     ? Long.parseLong(parsedInitData.remove(InitData.Param.CAN_SEND_AFTER.value))
                     : null;
         } catch (NumberFormatException e) {
-            throw new NumberFormatException("Unable to parse "
-                    + InitData.Param.CAN_SEND_AFTER.value
-                    + ": "
-                    + parsedInitData.get(InitData.Param.CAN_SEND_AFTER.value)
+            throw new TelegramInitDataException(
+                    "Unable to parse "
+                            + InitData.Param.CAN_SEND_AFTER.value + ": "
+                            + parsedInitData.get(InitData.Param.CAN_SEND_AFTER.value),
+                    e
             );
         }
         final Chat chat = parserUsed.parseChat(parsedInitData.remove(InitData.Param.CHAT.value));
@@ -330,17 +385,18 @@ public class InitDataUtils {
      *
      * @param initData the raw init data string received from Telegram (must be URL query format)
      * @return parsed {@link InitData} object with typed fields
-     * @throws IllegalArgumentException     if {@code initData} is {@code null} or {@code isBlank() == true}
-     * @throws NumberFormatException        if {@code can_send_after} can't be parsed to {@link Long}
-     * @throws JsonParseException           if there are occurred during json field parsing (e.g. {@code user}, {@code chat} etc.)
-     * @throws JsonPropertyMissingException if any required property in json object is missing
-     * @throws SignatureMissingException    if the {@code hash} parameter is missing in {@code initData}
+     * @throws IllegalArgumentException     if {@code initData} is {@code null} or blank
+     * @throws AuthDateMissingException     if the required {@code auth_date} parameter is missing in {@code initData}
      * @throws AuthDateInvalidException     if {@code auth_date} cannot be parsed into a valid timestamp
+     * @throws SignatureMissingException    if the required {@code hash} parameter is missing in {@code initData}
+     * @throws TelegramInitDataException    if a general init data parsing error occurs
+     * @throws JsonParseException           if JSON-typed fields (for example {@code user} or {@code chat}) cannot be parsed
+     * @throws JsonPropertyMissingException if required properties are missing in JSON-typed fields
      * @see #parse(String, InitDataJsonTypesParser)
      * @see <a href="https://docs.telegram-mini-apps.com/platform/init-data">Telegram Init Data documentation</a>
      */
     public static @NotNull InitData parse(@NotNull String initData) {
-        return InitDataUtils.parse(initData, null);
+        return parse(initData, null);
     }
 
     // =================================================================================================================

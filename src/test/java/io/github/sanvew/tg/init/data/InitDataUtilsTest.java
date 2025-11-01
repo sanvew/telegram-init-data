@@ -5,6 +5,7 @@ import io.github.sanvew.tg.init.data.exception.AuthDateMissingException;
 import io.github.sanvew.tg.init.data.exception.ExpiredException;
 import io.github.sanvew.tg.init.data.exception.SignatureInvalidException;
 import io.github.sanvew.tg.init.data.exception.SignatureMissingException;
+import io.github.sanvew.tg.init.data.exception.TelegramInitDataException;
 import io.github.sanvew.tg.init.data.json.parser.exception.JsonParseException;
 import io.github.sanvew.tg.init.data.type.Chat;
 import io.github.sanvew.tg.init.data.type.ChatType;
@@ -391,10 +392,10 @@ class InitDataUtilsTest {
         }
 
         @Test
-        void parse_withMalformedCanSendAfter_throwsIllegalArgumentException() {
+        void parse_withMalformedCanSendAfter_throwsTelegramInitDataException() {
             final String initMalformedCanSendAfter = "auth_date=1749945600&hash=abc&can_send_after=not_a_unix_timestamp";
 
-            assertThrows(IllegalArgumentException.class, () -> InitDataUtils.parse(initMalformedCanSendAfter));
+            assertThrows(TelegramInitDataException.class, () -> InitDataUtils.parse(initMalformedCanSendAfter));
         }
 
         @Test

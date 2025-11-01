@@ -22,11 +22,13 @@ import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-
 public class JacksonInitDataJsonTypesParser implements InitDataJsonTypesParser {
-    public static final InitDataJsonTypesParser INSTANCE = new JacksonInitDataJsonTypesParser();
-
+    private static final InitDataJsonTypesParser instance = new JacksonInitDataJsonTypesParser();
     private final ObjectMapper objectMapper;
+
+    public static InitDataJsonTypesParser of() {
+        return instance;
+    }
 
     public JacksonInitDataJsonTypesParser() {
         final Map<Class<?>, JsonDeserializer<?>> deserializer = Map.of(
@@ -40,7 +42,7 @@ public class JacksonInitDataJsonTypesParser implements InitDataJsonTypesParser {
     }
 
     @Override
-    public @Nullable User parseUser(@Nullable String input) {
+    public final @Nullable User parseUser(@Nullable String input) {
         if (input == null || input.isBlank()) { return null; }
         try {
             return this.objectMapper.readValue(input, User.class);
@@ -50,7 +52,7 @@ public class JacksonInitDataJsonTypesParser implements InitDataJsonTypesParser {
     }
 
     @Override
-    public @Nullable Chat parseChat(@Nullable String input) {
+    public final @Nullable Chat parseChat(@Nullable String input) {
         if (input == null || input.isBlank()) { return null; }
         try {
             return this.objectMapper.readValue(input, Chat.class);

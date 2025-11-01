@@ -59,7 +59,8 @@ class CryptoUtils {
             final KeyFactory keyFactory = KeyFactory.getInstance("Ed25519");
             final byte[] pubKey = hexFormat.parseHex(hexPubKey);
             final boolean xOdd = ((pubKey[pubKey.length - 1] & 0xFF) >> 7) == 1;
-            littleEndianToBigEndianInPlace(pubKey);
+            reverse(pubKey);
+            pubKey[0] &= 127;
             final EdECPoint edECPoint = new EdECPoint(xOdd, new BigInteger(pubKey));
             final KeySpec pubKeySpec = new EdECPublicKeySpec(NamedParameterSpec.ED25519, edECPoint);
             return keyFactory.generatePublic(pubKeySpec);
@@ -68,16 +69,8 @@ class CryptoUtils {
         }
     }
 
-    private static void littleEndianToBigEndianInPlace(byte[] byteArr) {
-        reverseInPlace(byteArr);
-        byteArr[0] &= 127;
-    }
-
-    private static void reverseInPlace(final byte[] byteArr) {
-        if (byteArr == null || byteArr.length <= 1) {
-            return;
-        }
-
+    private static void reverse(final byte[] byteArr) {
+        if (byteArr == null || byteArr.length <= 1) return;
         int start = 0, end = byteArr.length - 1;
         while (start < end) {
             byte tmp = byteArr[start];
