@@ -1,12 +1,20 @@
 name: Publish "Telegram InitData" package to the Maven Central Repository
 on:
   push:
-    branches: [main]
+    tags:
+      - '[0-9].[0-9]+.[0-9]+'
 permissions:
   contents: write
 jobs:
+  greetings:
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' }}
+    steps:
+      - run: |
+          echo "Repository = '${{ github.repository }}', tag = '${{ github.ref_name }}', "
   check-version:
     runs-on: ubuntu-latest
+    needs: [ greetings ]
     outputs:
       PKG_VERSION: ${{ steps.package-version.outputs.PKG_VERSION }}
     steps:
@@ -17,7 +25,7 @@ jobs:
         id: package-version
         run: |
           echo "PKG_VERSION=$(xmlstarlet sel -N x="http://maven.apache.org/POM/4.0.0" -t -v "/x:project/x:version" pom.xml)" >> "$GITHUB_OUTPUT"
-      - name: Check release version already exists
+      - name: Check version
         env:
           PKG_VERSION: ${{ steps.package-version.outputs.PKG_VERSION }}
         run: |
@@ -25,6 +33,9 @@ jobs:
           git config --local user.name "GitHub Action"
           if git ls-remote --tags origin | grep -q "refs/tags/${PKG_VERSION}"; then
             echo "Release ${PKG_VERSION} already exist, aborting!"
+            exit 1
+          elif [ ${{ github.ref_name }} != ${PKG_VERSION} ]; then
+            echo "Project version ${PKG_VERSION} does not equals to tag ${{ github.ref_name }}, aborting!"
             exit 1
           fi
   build:
@@ -35,10 +46,10 @@ jobs:
       - name: JDK setup
         uses: actions/setup-java@v4
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'temurin'
       - name: Build package
-        run: mvn -B package --file pom.xml
+        run: mvn -B package --file pom.xml -Prelease,sonatype-central
       - uses: actions/upload-artifact@v4
         with:
           name: target
@@ -58,7 +69,6 @@ jobs:
       - name: Create Release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ env.PKG_VERSION }}
           makeLatest: true
           name: "v${{ env.PKG_VERSION }}"
           body: ${{ github.event.head_commit.message }}
