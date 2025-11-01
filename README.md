@@ -1,7 +1,7 @@
 # Telegram Web App User Validation library
 
-**Java/Koltin** library provides utilities to work with the initialization data of Telegram Mini Apps. Supports
-Telegram **Bot Token** validation via ```InitDataUtils#validate```, Telegram **Public Key (3rd party)** validation via ```InitDataUtils#validate3rd```
+**Java/Koltin** library provides utilities to work with the initialization data of Telegram Mini Apps. Supports Init Data
+validation with Telegram **Bot Token** via ```InitDataUtils#validate```, Telegram **Public Key (3rd party)** via ```InitDataUtils#validate3rd```
 and **InitData parsing** via ```InitDataUtils#parse```.
 
 🔗 [Official documentation: Telegram Mini App Init Data](https://docs.telegram-mini-apps.com/platform/init-data)
